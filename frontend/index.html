@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fraud Detection System</title>
+    <script src="config.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 18px;
+        }
+        .fraud {
+            background-color: #ffebee;
+            color: #c62828;
+            border: 1px solid #ffcdd2;
+        }
+        .legit {
+            background-color: #e8f5e8;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+        .error {
+            background-color: #fff3e0;
+            color: #ef6c00;
+            border: 1px solid #ffe0b2;
+        }
+        .loading {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+        }
+        .info {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #999;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ Fraud Detection System</h1>
+        
+        <form id="transactionForm">
+            <div class="form-group">
+                <label for="amount">Amount (€):</label>
+                <input type="number" id="amount" name="amount" step="0.01" min="0" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="hour">Hour (0-23):</label>
+                <input type="number" id="hour" name="hour" min="0" max="23" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="merchant_category">Merchant Category:</label>
+                <select id="merchant_category" name="merchant_category" required>
+                    <option value="0">0 - Grocery</option>
+                    <option value="1">1 - Restaurant</option>
+                    <option value="2">2 - Clothing</option>
+                    <option value="3">3 - Electronics</option>
+                    <option value="4">4 - Travel</option>
+                    <option value="5">5 - Entertainment</option>
+                    <option value="6">6 - High-risk (gambling)</option>
+                    <option value="7">7 - High-risk (crypto)</option>
+                    <option value="8">8 - High-risk (adult)</option>
+                    <option value="9">9 - High-risk (other)</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="distance_from_home">Distance from Home (km):</label>
+                <input type="number" id="distance_from_home" name="distance_from_home" step="0.1" min="0" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="num_transactions_last_24h">Transactions (last 24h):</label>
+                <input type="number" id="num_transactions_last_24h" name="num_transactions_last_24h" min="0" required>
+            </div>
+            
+            <button type="submit" id="submitBtn">Check Transaction</button>
+        </form>
+        
+        <div id="loading" class="loading" style="display: none;">
+            Analyzing transaction...
+        </div>
+        
+        <div id="result" class="result" style="display: none;"></div>
+        
+        <div class="info">
+            <p>API URL: <span id="apiUrlDisplay"></span></p>
+            <p>Model Version: <span id="modelVersion">-</span></p>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('transactionForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const loadingDiv = document.getElementById('loading');
+        const resultDiv = document.getElementById('result');
+        const apiUrlDisplay = document.getElementById('apiUrlDisplay');
+        const modelVersionSpan = document.getElementById('modelVersion');
+
+        // Display API URL from config
+        apiUrlDisplay.textContent = CONFIG.API_URL;
+
+        // Check API health on load
+        async function checkHealth() {
+            try {
+                const response = await fetch(`${CONFIG.API_URL}/health`);
+                const data = await response.json();
+                if (data.model_version) {
+                    modelVersionSpan.textContent = data.model_version;
+                }
+            } catch (error) {
+                console.error('Health check failed:', error);
+            }
+        }
+        checkHealth();
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Get form data
+            const transaction = {
+                amount: parseFloat(document.getElementById('amount').value),
+                hour: parseInt(document.getElementById('hour').value),
+                merchant_category: parseInt(document.getElementById('merchant_category').value),
+                distance_from_home: parseFloat(document.getElementById('distance_from_home').value),
+                num_transactions_last_24h: parseInt(document.getElementById('num_transactions_last_24h').value)
+            };
+
+            // Show loading, hide result
+            loadingDiv.style.display = 'block';
+            resultDiv.style.display = 'none';
+            submitBtn.disabled = true;
+
+            try {
+                // Call API
+                const response = await fetch(`${CONFIG.API_URL}/predict`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(transaction)
+                });
+
+                const data = await response.json();
+
+                // Hide loading
+                loadingDiv.style.display = 'none';
+                
+                // Show result
+                resultDiv.style.display = 'block';
+                
+                if (response.ok) {
+                    if (data.is_fraud) {
+                        resultDiv.className = 'result fraud';
+                        resultDiv.innerHTML = `
+                            <strong>⚠️ FRAUD ALERT</strong><br>
+                            Probability: ${(data.fraud_probability * 100).toFixed(1)}%<br>
+                            <small>Model: ${data.model_version}</small>
+                        `;
+                    } else {
+                        resultDiv.className = 'result legit';
+                        resultDiv.innerHTML = `
+                            <strong>✅ Transaction appears legitimate</strong><br>
+                            Fraud Probability: ${(data.fraud_probability * 100).toFixed(1)}%<br>
+                            <small>Model: ${data.model_version}</small>
+                        `;
+                    }
+                    
+                    // Update model version if different
+                    if (data.model_version) {
+                        modelVersionSpan.textContent = data.model_version;
+                    }
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `
+                        <strong>❌ Error</strong><br>
+                        ${data.detail || 'Unknown error occurred'}<br>
+                        <small>Please try again</small>
+                    `;
+                }
+            } catch (error) {
+                loadingDiv.style.display = 'none';
+                resultDiv.style.display = 'block';
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <strong>❌ Connection Error</strong><br>
+                    Could not reach the API<br>
+                    <small>${error.message}</small>
+                `;
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

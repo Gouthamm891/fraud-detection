@@ -1,0 +1,75 @@
+version: '3.8'
+
+x-airflow-common: &airflow-common
+  build: .
+  environment:
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    AIRFLOW__WEBSERVER__SECRET_KEY: 'your-secret-key-here'
+    # Paths for data sharing
+    DATA_PATH: /opt/airflow/data/transactions.csv
+    MODEL_PATH: /opt/airflow/model/fraud_model.pkl
+    BASELINE_PATH: /opt/airflow/model/baseline_stats.json
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ../data:/opt/airflow/data
+    - ../backend/model:/opt/airflow/model
+    - ./logs:/opt/airflow/logs
+    - ./plugins:/opt/airflow/plugins
+  depends_on:
+    postgres:
+      condition: service_healthy
+  networks:
+    - airflow-network
+
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 5s
+      retries: 5
+    restart: always
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - airflow-network
+
+  airflow-init:
+    <<: *airflow-common
+    command: >
+      bash -c "
+      airflow db init &&
+      airflow users create
+        --username admin
+        --firstname admin
+        --lastname admin
+        --role Admin
+        --email admin@example.com
+        --password admin
+      "
+    restart: on-failure
+
+  airflow-webserver:
+    <<: *airflow-common
+    command: airflow webserver
+    ports:
+      - "8080:8080"
+    restart: always
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: airflow scheduler
+    restart: always
+
+volumes:
+  postgres-data:
+
+networks:
+  airflow-network:
+    driver: bridge
