@@ -1,3 +1,3 @@
 const CONFIG = {
-    API_URL: "http://localhost:8000",  // Change this to your Render URL later
+    API_URL: "https://fraud-detection-api-m7n0.onrender.com",
 };
