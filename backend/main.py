@@ -12,7 +12,7 @@ app = FastAPI(title="Fraud Detection API")
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://fraud-detection-six-nu.vercel.app"],   # <-- put your Vercel URL here
+    allow_origins=["https://fraud-detection-ruddy.vercel.app"],   # <-- put your Vercel URL here
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
