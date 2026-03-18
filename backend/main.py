@@ -1,4 +1,5 @@
-from fastapi.middleware.cors import CORSMiddleware   # <-- add this linefrom fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware   # <-- add this line
+from fastapi import FastAPI, HTTPException   # <-- add this linefrom fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import joblib
 import numpy as np
