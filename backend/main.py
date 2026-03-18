@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware   # <-- add this linefrom fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import joblib
 import numpy as np
@@ -7,6 +7,18 @@ import os
 from typing import Dict, Any
 
 app = FastAPI(title="Fraud Detection API")
+app = FastAPI(title="Fraud Detection API")
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://fraud-detection-six-nu.vercel.app"],   # <-- put your Vercel URL here
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ... rest of your code (health, predict, etc.)
 
 # Load model at startup
 MODEL_VERSION = os.getenv("MODEL_VERSION", "v1.0")
