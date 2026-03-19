@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+
+# Virtual environment
+venv/
+.venv/
+env/
+ENV/
+
+# Model files (will be generated inside container)
+model/*.pkl
+model/*.json
+
+# Git
+.git/
+.gitignore
+.github/
+
+# Docker
+Dockerfile
+.dockerignore
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
